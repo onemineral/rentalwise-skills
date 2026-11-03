@@ -6,7 +6,7 @@ description: How to build the payment page a guest lands on right after a bookin
 # Payment page
 
 After `property/create-booking` succeeds, the booking flow (`rentalwise-booking`
-section 6) redirects the guest to a payment page. This skill is that page plus the thank-you
+section 4) redirects the guest to a payment page. This skill is that page plus the thank-you
 page it returns to. The page:
 
 1. is reached by a URL that does not expose the booking id;
@@ -64,8 +64,7 @@ POST booking/fetch
 {
   "id": 9876,
   "with": ["property.main_image", "property.legal_entity", "property.rental_agreement",
-           "property.rates_settings", "products", "service_requests", "service_requests.service",
-           "payment_schedule_steps", "currency", "main_guest"],
+           "property.rates_settings", "products", "payment_schedule_steps", "currency", "main_guest"],
   "no_auto_relations": true
 }
 ```
@@ -109,11 +108,7 @@ URL or kept from the booking form.
 Booking:
 - `checkin`, `checkout`, `length_of_stay`, `adults`, `children`, `babies`, `pets`;
 - price lines from `products[]` (`name`, `total`; `products` may be an array or `{ data: [] }`),
-  `total` in `currency.iso_code`; lines of type `service` are extras the guest added and are
-  already inside `total`;
-- pending extras from `service_requests[]` (`name`, `quantity`, `total`, `pricing_notes`,
-  `status: "requested"`), listed apart as "requested, confirmed by the host later" and not added
-  to the amount due;
+  `total` in `currency.iso_code`;
 - `payment_schedule_steps[]` (`short_description` or `type`, `due_date`, `amount`,
   `is_paid`) so the guest sees deposit now / balance later;
 - the amount due now, prominently, with wording by `status`: `pending_host_confirmation` means
@@ -220,7 +215,7 @@ URL: pass it as a server-side redirect, do not print it in the page or return it
   anything else → the generic summary. Include the `legal_entity` contact block and the next
   schedule step when one is unpaid.
 - The booking flow also sends guests here directly when nothing is due at booking time
-  (`rentalwise-booking` section 6). The same hidden-id URL serves both cases.
+  (`rentalwise-booking` section 4). The same hidden-id URL serves both cases.
 
 ## Checklist
 

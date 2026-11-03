@@ -90,8 +90,6 @@ export type PaymentPageBooking = {
     nextPaymentDueDate: string | null;
     expiresAt: string | null;
     lines: { name: string; type: string; total: number }[];
-    /** extras requested by the guest and not yet confirmed by the host; not part of `total` */
-    pendingServices: { name: string; quantity: number; total: number | null; isEstimate: boolean; pricingNotes: Translated | null }[];
     schedule: { label: string; dueDate: string | null; amount: number; isPaid: boolean }[];
     guestFirstName: string | null;
     property: {
@@ -119,8 +117,6 @@ const BOOKING_RELATIONS = [
     'property.rental_agreement',
     'property.rates_settings',
     'products',
-    'service_requests',
-    'service_requests.service',
     'payment_schedule_steps',
     'currency',
     'main_guest',
@@ -166,10 +162,6 @@ export async function loadPaymentPage(
     const property = booking.property ?? {};
     const { locale, defaultLocale } = options;
     const products: any[] = Array.isArray(booking.products) ? booking.products : (booking.products?.data ?? []);
-    // extras still waiting for the host (on request / estimates); confirmed ones are already `products` of type 'service'
-    const requests: any[] = Array.isArray(booking.service_requests)
-        ? booking.service_requests
-        : (booking.service_requests?.data ?? []);
     const steps: any[] = Array.isArray(booking.payment_schedule_steps)
         ? booking.payment_schedule_steps
         : (booking.payment_schedule_steps?.data ?? []);
@@ -195,15 +187,6 @@ export async function loadPaymentPage(
         nextPaymentDueDate: booking.next_payment_due_date ?? null,
         expiresAt: booking.status === 'hold' ? (booking.expires_at ?? null) : null,
         lines: products.map((p) => ({ name: String(p.name ?? ''), type: String(p.type ?? ''), total: num(p.total) })),
-        pendingServices: requests
-            .filter((r) => r.status === 'requested')
-            .map((r) => ({
-                name: resolveText(r.name, locale, defaultLocale) ?? '',
-                quantity: Number(r.quantity ?? 1),
-                total: r.total == null ? null : num(r.total),
-                isEstimate: Boolean(r.is_price_estimate),
-                pricingNotes: r.pricing_notes ?? null, // map; the page resolves it like `property.name`
-            })),
         schedule: steps.map((s) => ({
             label: s.short_description || s.type || '',
             dueDate: s.due_date ?? null,

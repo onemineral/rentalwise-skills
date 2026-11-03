@@ -6,7 +6,7 @@ listed in the marketplace manifest at `.claude-plugin/marketplace.json`.
 
 | Set | Folder | What it is for |
 |---|---|---|
-| Website | [`website/`](website/README.md) | Building standalone guest-facing websites on the API: client and auth, search, property page, quote, booking and upsells, payment page, languages and translations. |
+| Website | [`website/`](website/README.md) | Building standalone guest-facing websites on the API: client and auth, search, property page, quote, booking, payment page, languages and translations. |
 
 ## Installing a set
 

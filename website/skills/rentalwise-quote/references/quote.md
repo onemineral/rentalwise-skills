@@ -63,8 +63,8 @@
 }
 ```
 
-Product `type` values: `accommodation`, `fee`, `additional_fee`, `additional_service`,
-`discount`, `service`, `bond_capture`, `other`. Discounts have negative totals. Show
+Product `type` values: `accommodation`, `fee`, `additional_fee`, `discount`, `bond_capture`,
+`other`. Discounts have negative totals. Show
 `product.total` (tax-inclusive) per line and `quote.total` as the grand total; offer a details
 view with `line_items` and `taxes` when a product has more than one of them.
 
@@ -81,8 +81,7 @@ pets, coupon code, currency id, the (back-office) total overrides and fees, and 
 `total` / `total_pretax`. No timestamp, no server-side record: the id never expires by time and
 is valid for as long as the same request prices the same. `create-booking` quotes again, hashes
 the result and compares; a mismatch is 422 `quote_id` with the message
-"The pricing for this property has expired." (translated by `x-locale`). The same check guards
-`service/price-services`.
+"The pricing for this property has expired." (translated by `x-locale`).
 
 ## Error handling
 

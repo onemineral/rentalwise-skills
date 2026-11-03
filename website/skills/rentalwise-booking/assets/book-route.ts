@@ -1,8 +1,8 @@
 /**
  * Server-side booking route for a standalone RentalWise website: the guest form was submitted,
- * now price the stay again, price the selected extras, create the booking and decide where the
- * guest goes next. Framework-agnostic: wrap `handleBook()` in a Next.js route handler, a
- * SvelteKit action, an Express handler, a serverless function, ... all server-side.
+ * now price the stay again, create the booking and decide where the guest goes next.
+ * Framework-agnostic: wrap `handleBook()` in a Next.js route handler, a SvelteKit action, an
+ * Express handler, a serverless function, ... all server-side.
  *
  *   const rw = createRentalWiseClient({ baseURL: process.env.RENTALWISE_BASE_URL!, token: process.env.RENTALWISE_API_TOKEN! });
  *   const result = await handleBook(rw, input, { sourceName: 'www.customer.com', holdHours: 2, locale: 'fr' });
@@ -14,7 +14,7 @@
  * `payment-page-loader.ts` (`encodeBookingToken`); swap that import for your own scheme if you
  * chose another (rentalwise-payment-page section 1).
  *
- * Mirrors the flow of rentalwise-booking sections 1, 2, 4 and 6 and the decision of the
+ * Mirrors the flow of rentalwise-booking sections 1, 3 and 4 and the decision of the
  * reference website (thank-you when the next payment is due later, payment page when the legal
  * entity has an online payment method, thank-you otherwise).
  */
@@ -53,19 +53,9 @@ export interface GuestForm {
     accepted_rental_agreement?: boolean;
 }
 
-/** One line of the checkout extras, as the last `service/price-services` response echoed it. */
-export interface ServiceSelection {
-    service_id: number;
-    quantity: number;
-    guests_count?: number | null;
-    duration_hours?: number | null;
-    service_date?: string | null;
-}
-
 export interface BookInput {
     criteria: StayCriteria;
     guest: GuestForm;
-    services?: ServiceSelection[];
     guest_message?: string | null;
     tracking?: Record<string, unknown> | null; // utm_* from a first-touch cookie
     point_of_conversion?: string | null;
@@ -78,12 +68,10 @@ export interface BookOptions {
     holdHours?: number;
     /** Page locale; becomes the URL prefix of the redirect targets (`/fr/payment/...`). Omit for the default language. */
     locale?: string;
-    /** Route the guest through the extras step (rentalwise-booking section 5) before the thank-you / payment decision. */
-    extrasStep?: boolean;
     /** Translate the API's own 422 messages (en, fr, pt, ro). Your own messages are still better. */
     xLocale?: string;
     /** Paths of your pages; defaults match rentalwise-payment-page. Each receives the hidden-id ref. */
-    paths?: { payment?: string; thankYou?: string; extras?: string };
+    paths?: { payment?: string; thankYou?: string };
 }
 
 export type BookResult =
@@ -143,34 +131,12 @@ export async function handleBook(rw: RentalWiseClient, input: BookInput, options
         return { ok: false, notAvailable: true, message: 'The property is not available for the selected dates.', errors: {} };
     }
 
-    // 2. Extras selected on the checkout page, re-priced against this quote (section 2).
-    let priced: any = null;
-    if (input.services && input.services.length > 0) {
-        try {
-            priced = await rw.post('service/price-services', { ...quoteParams, quote_id: quote.quote_id, services: input.services }, { headers });
-        } catch (e) {
-            return mapValidation(e, 'services');
-        }
-        const estimate = (priced.services as any[]).find((s) => s.is_price_estimate);
-        if (estimate) {
-            return { ok: false, notAvailable: false, message: 'This service is priced on request and cannot be booked online.', errors: { services: ['Remove the on-request service and add it after the booking instead.'] } };
-        }
-    }
-
-    // 4. Create the booking with the quote's own criteria, the priced lines and the main guest.
+    // 3. Create the booking with the quote's own criteria and the main guest.
     let booking: any;
     try {
         booking = await rw.post('property/create-booking', {
             ...quote.search_criteria, // property, daterange, adults, children, babies, pets, currency, coupon_code
             quote_id: quote.quote_id,
-            ...(priced
-                ? {
-                      services: (priced.services as any[]).map(({ service_id, quantity, guests_count, duration_hours, service_date }) => ({
-                          service_id, quantity, guests_count, duration_hours, service_date,
-                      })),
-                      services_quote_id: priced.services_quote_id,
-                  }
-                : {}),
             guests: [guestRecord(guest)],
             guest_message: input.guest_message ?? null,
             ...(options.holdHours && options.holdHours > 0 ? { hold: true, hold_hours: options.holdHours } : {}),
@@ -182,32 +148,28 @@ export async function handleBook(rw: RentalWiseClient, input: BookInput, options
         return mapValidation(e, 'booking');
     }
 
-    // 5 / 6. Where the guest goes next. The browser gets this path and nothing else.
+    // 4. Where the guest goes next. The browser gets this path and nothing else.
     const next = await nextStepAfterBooking(rw, booking, property.legal_entity?.id ?? null, options);
     return { ok: true, next };
 }
 
-/* ------------------------------------------------------------------ decision (section 6) */
+/* ------------------------------------------------------------------ decision (section 4) */
 
 /**
  * Thank-you when the next payment is due later; otherwise the payment page when the property's
- * legal entity has an online payment method the website may use; thank-you otherwise. Also the
- * entry point after `booking/add-services`, with the booking that call returned.
+ * legal entity has an online payment method the website may use; thank-you otherwise.
  */
 export async function nextStepAfterBooking(
     rw: RentalWiseClient,
     booking: any,
     legalEntityId: number | null,
-    options: Pick<BookOptions, 'locale' | 'extrasStep' | 'paths'>,
+    options: Pick<BookOptions, 'locale' | 'paths'>,
 ): Promise<string> {
     const ref = encodeBookingToken(booking.id);
     const prefix = options.locale ? `/${options.locale}` : '';
-    const paths = { payment: '/payment', thankYou: '/payment', extras: '/booking/extras', ...options.paths };
+    const paths = { payment: '/payment', thankYou: '/payment', ...options.paths };
     const thankYou = `${prefix}${paths.thankYou}/${ref}/thank-you`;
 
-    if (options.extrasStep && isOpenForExtras(booking)) {
-        return `${prefix}${paths.extras}/${ref}`;
-    }
     if (isDueLater(booking.next_payment_due_date)) {
         return thankYou; // first schedule step is later: instant-book and request-to-book alike
     }
@@ -262,12 +224,6 @@ export function isDueLater(dueDate: unknown, now: Date = new Date()): boolean {
     return dueDate.slice(0, 10) > today;
 }
 
-/** Still open for the extras step of section 5: unpaid and pending. */
-export function isOpenForExtras(b: { status: string; payment_status?: string | null }): boolean {
-    const open = ['pending_payment', 'hold', 'pending_host_confirmation'].includes(b.status);
-    return open && (!b.payment_status || b.payment_status === 'unpaid');
-}
-
 /* ------------------------------------------------------------------ helpers */
 
 function validateInput(input: BookInput): BookResult | null {
@@ -287,9 +243,6 @@ function validateInput(input: BookInput): BookResult | null {
         if (!g?.[field] || String(g[field]).trim() === '') errors[field] = ['This field is required.'];
     }
     if (!Number.isInteger(g?.country)) errors.country = ['Country is required.'];
-    if (input.services?.some((s) => !Number.isInteger(s.service_id) || !Number.isInteger(s.quantity) || s.quantity < 1)) {
-        errors.services = ['Invalid service selection.'];
-    }
     if (Object.keys(errors).length === 0) return null;
     return { ok: false, notAvailable: false, message: 'Please check the form.', errors };
 }
@@ -310,7 +263,7 @@ function guestRecord(g: GuestForm) {
 }
 
 /** 422 -> form result; not-available rule keys collapse into one outcome (rentalwise-quote section 4). Anything else is rethrown. */
-function mapValidation(e: unknown, step: 'quote' | 'services' | 'booking'): BookResult {
+function mapValidation(e: unknown, step: 'quote' | 'booking'): BookResult {
     if (!(e instanceof RentalWiseError) || e.statusCode !== 422) throw e;
     const errors: Record<string, string[]> = e.responseBody?.errors ?? {};
     const ruleKeys = Object.keys(errors).filter((k) => !NOT_AVAILABLE_KEYS.includes(k));
@@ -320,6 +273,6 @@ function mapValidation(e: unknown, step: 'quote' | 'services' | 'booking'): Book
     }
     const kept: Record<string, string[]> = {};
     for (const k of ruleKeys) kept[k] = errors[k];
-    const message = step === 'services' ? 'Please review the selected extras.' : ruleKeys.length ? kept[ruleKeys[0]][0] : String(e.responseBody?.message ?? 'The given data was invalid.');
+    const message = ruleKeys.length ? kept[ruleKeys[0]][0] : String(e.responseBody?.message ?? 'The given data was invalid.');
     return { ok: false, notAvailable: false, message, errors: kept };
 }

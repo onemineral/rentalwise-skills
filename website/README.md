@@ -14,7 +14,7 @@ framework guidance the project needs.
 | `rentalwise-search-properties` | build a search or listing page, a collection page, a destination page, filters (dates, guests, location, amenities, budget, currency). |
 | `rentalwise-property-details` | build a property page: content, images, amenities, rooms, policies, fees, reviews, availability calendar, seasonal rates. |
 | `rentalwise-quote` | build the price box on the property page: price a stay (quote with coupon, currency, security deposit), re-quote on changes, handle not-available and rule errors, label the "book now" / "request to book" button and hand over to the booking page, or capture an inquiry / contact form. |
-| `rentalwise-booking` | build the booking (checkout) page: the fresh quote it opens with, upsell the host's services (catalogue for the stay, pricing by nights, guests, hours or quantity, extras at checkout and after the booking is created), collect guest details, create the booking, decide between thank-you and payment. |
+| `rentalwise-booking` | build the booking (checkout) page: the fresh quote it opens with, collect guest details, create the booking, decide between thank-you and payment. |
 | `rentalwise-payment-page` | build the page the guest pays on: keep the booking id out of the URL, fetch and display the booking and property, embed the RentalWise payments widget, handle retry and the thank-you page. |
 | `rentalwise-languages-and-translations` | make the site multilingual or render any translated field: which language keys the account uses (`language/query`), resolving TranslatedText with the right fallback, locale in sort/filter/search, per-language URLs, hreflang and metadata. Texts the website adds itself are not covered. |
 
@@ -86,7 +86,7 @@ format, run with `--eval-dir` pointing at that folder); agents ignore them.
 2. `rentalwise-search-properties` — listing and search pages.
 3. `rentalwise-property-details` — property page and calendar.
 4. `rentalwise-quote` — price box on the property page, quote errors, inquiries.
-5. `rentalwise-booking` — booking page: quote, extras/upsells, guest form, create-booking, where to send the guest next.
+5. `rentalwise-booking` — booking page: quote, guest form, create-booking, where to send the guest next.
 6. `rentalwise-payment-page` — payment page, widget, thank-you.
 7. `rentalwise-languages-and-translations` — as soon as the site has a second language; section 2 applies
    to single-language sites too, because every name and description is a translated map.

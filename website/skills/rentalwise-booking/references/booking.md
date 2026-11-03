@@ -11,8 +11,6 @@
 | `children`, `babies`, `pets`, `bedrooms` | | Same as the quote. |
 | `currency` | `{ iso_code }` or `{ id }` | Same as the quote. |
 | `coupon_code` | string | Same as the quote. |
-| `services[]` | array | Extras selected on the checkout page: `service_id`, `quantity`, `guests_count`, `duration_hours`, `service_date`, copied from the last `service/price-services` response (`references/services.md`). |
-| `services_quote_id` | string | The hash from that same response; the booking is refused with 422 `services_quote_id` when the re-priced lines no longer match it. |
 | `source_name` | string | Origin label shown in the PMS (site name or domain). |
 | `guests` | array | Required, at least the main guest. Fields per the schema: `first_name`, `last_name`, `full_name`, `email`, `secondary_email`, `phone`, `secondary_phone`, `company`, `vat_id`, `address`, `country` (country id), `gender`, `birthdate`, `birth_year`, `notes`, `external_id`, `source`.* Additional guests can be added later via the online check-in. |
 | `guest_message` | string | Free text from the guest to the host. |
@@ -61,13 +59,7 @@ follow the account's own notification settings (`rentalwise-languages-and-transl
   "expiration_hours": 2,
   "handles_payment": true,
   "main_guest": { "id": 555, "first_name": "Ana", "last_name": "Pop", "email": "ana@example.com" },
-  "products": [ ... same shape as quote.products; instant services appear here as type "service" with service_id, pricing_unit, items_count, service_date ... ],
-  "service_requests": [
-    { "id": 31, "name": { "en": "Breakfast basket" }, "service": { "id": 9, "name": { "en": "Breakfast basket" } },
-      "status": "requested", "pricing_unit": "per_guest_per_night", "quantity": 1, "guests_count": 3, "nights_count": 7,
-      "duration_hours": null, "service_date": null, "price": 12, "total": 252, "is_price_estimate": false,
-      "pricing_notes": { "en": "Delivered at 8:00" }, "guest_request": { "en": "No nuts please" } }
-  ],
+  "products": [ ... same shape as quote.products ... ],
   "payment_schedule_steps": [
     { "type": "on_reservation", "charge_percent": 30, "amount": 659.7, "amount_paid": 0, "is_paid": false, "due_date": "2026-05-26", "short_description": "Deposit" },
     { "type": "before_checkin", "days": 30, "charge_percent": 70, "amount": 1539.3, "amount_paid": 0, "is_paid": false, "due_date": "2026-06-10", "short_description": "Balance" }
@@ -83,10 +75,7 @@ Statuses: `hold`, `pending_payment`, `pending_host_confirmation`, `confirmed`, `
 `voided_by_customer`, `relocated`.
 
 `products` may come back as a plain array or as a paginated object `{ data: [...] }` depending
-on how the relation was loaded; normalise before mapping. `service_requests` holds the
-on-request and estimate services still waiting for the host (`status: "requested"`; the
-relation hides confirmed ones, which are billed `products` of type `service`); their `total` is
-not part of the booking's `total`. `payment_schedule_steps[].type` is
+on how the relation was loaded; normalise before mapping. `payment_schedule_steps[].type` is
 `on_reservation`, `before_checkin` or `installment`; the booking is fully paid when every step
 has `is_paid: true` (`payment_status` says `paid` / `partial_paid` / `unpaid` too).
 

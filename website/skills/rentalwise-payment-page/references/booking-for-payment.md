@@ -8,8 +8,7 @@ POST booking/fetch
   "id": 9876,
   "with": ["property.main_image", "property.location", "property.legal_entity",
            "property.rental_agreement", "property.rates_settings",
-           "products", "service_requests", "service_requests.service",
-           "payment_schedule_steps", "currency", "main_guest"],
+           "products", "payment_schedule_steps", "currency", "main_guest"],
   "no_auto_relations": true
 }
 ```
@@ -40,8 +39,7 @@ the project's token is the authoritative list.
 | `currency.iso_code` | Currency of every amount on the booking. |
 | `checkin`, `checkout`, `length_of_stay` | Stay. `checkin_time` / `checkout_time` are datetimes when the customer wants times shown. |
 | `adults`, `children`, `babies`, `pets` | Party. |
-| `products[]` | Price lines: `name` (string), `type` (`accommodation`, `fee`, `discount`, `service`, ...), `total`, `total_pretax`; a `service` line also has `items_count`, `pricing_unit`, `service_date`, `description` (the pricing notes). Array in practice; guard for `{ data: [] }`. |
-| `service_requests[]` | Extras waiting for the host: `name` (translated map), `quantity`, `guests_count`, `duration_hours`, `service_date`, `price`, `total`, `is_price_estimate`, `pricing_notes`, `status` (`requested` or `closed`). Not in `total`; show as pending. Same array / `{ data: [] }` guard. |
+| `products[]` | Price lines: `name` (string), `type` (`accommodation`, `fee`, `discount`, ...), `total`, `total_pretax`. Array in practice; guard for `{ data: [] }`. |
 | `payment_schedule_steps[]` | `type` (`on_reservation`, `before_checkin`, `installment`), `short_description`, `due_date`, `amount`, `amount_paid`, `is_paid`, `charge_percent`, `days`. |
 | `expires_at`, `expiration_hours` | Hold deadline (`hold` status). Datetime string `YYYY-MM-DD HH:MM:SS` in **UTC** (created as now + `hold_hours` on the UTC clock). Parse it as UTC and format it in the visitor's local timezone (`Intl.DateTimeFormat` with no explicit zone), or show "within N hours"; the account's own zone is `tenant.settings.timezone` in `settings/fetch` if the customer prefers that. |
 | `security_deposit_status`, `security_deposit_link` | Deposit state; the link is a capability URL, keep it server-side. |
@@ -75,8 +73,7 @@ type PaymentPageBooking = {
   amountDue: number;                  // next_payment_amount || total_outstanding
   nextPaymentDueDate: string | null;
   expiresAt: string | null;
-  lines: { name: string; type: string; total: number }[];   // includes extras of type 'service'
-  pendingServices: { name: string; quantity: number; total: number | null; isEstimate: boolean; pricingNotes: Record<string, string> | null }[];  // on-request extras, not in total
+  lines: { name: string; type: string; total: number }[];
   schedule: { label: string; dueDate: string | null; amount: number; isPaid: boolean }[];
   guestFirstName: string | null;
   property: {

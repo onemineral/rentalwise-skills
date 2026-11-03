@@ -50,7 +50,7 @@ Build the site so that every RentalWise call runs in server code:
   guest data.
 - A static site or single-page app with no server (plain Vite/React, static Astro output, a
   CDN-only deploy) needs one before it can use RentalWise: serverless functions (Vercel, Netlify,
-  Cloudflare, AWS Lambda) or a small Node service. Never call the API from the browser, not even
+  Cloudflare, AWS Lambda) or a small Node server. Never call the API from the browser, not even
   as a temporary shortcut.
 - Environment variables with a public prefix are compiled into the browser bundle. Never name the
   token `NEXT_PUBLIC_*`, `VITE_*`, `REACT_APP_*`, `PUBLIC_*`, `NUXT_PUBLIC_*`, `EXPO_PUBLIC_*`,
@@ -239,7 +239,6 @@ and payments:
 | Read | Write |
 |---|---|
 | `property/search`, `property/query`, `property/fetch`, `property/get-unavailability`, `property/get-occupancy-rates`, `property/get-applicable-discounts`, `property/get-quote` | `property/create-booking` |
-| `service/query-available`, `service/price-services`, `service/price-services-for-booking`, `service/price-for-booking` (extras / upsells; newer PMS releases only, see `rentalwise-booking`) | `booking/add-services` (extras added to the guest's own booking before payment) |
 | `collection/query`, `collection/fetch`, `location/query`, `amenity/query`, `amenity-group/query`, `property-type/query`, `tag/query`, `currency/query`, `country/query`, `language/query`, `settings/fetch` (schema, development time only) | `payment/create-client-secret` |
 | `booking/fetch` / `booking/query` for the guest's own booking only, `payment-method/query` | `inquiry/create` (contact forms, optional) |
 
@@ -266,7 +265,7 @@ it never receives the upstream body of a 401 or 5xx.
 | Send to the browser | Keep on the server |
 |---|---|
 | Search results, property content, collection and location records, reference data | `RENTALWISE_API_TOKEN`, `RENTALWISE_BASE_URL`, any `Authorization` header |
-| The quote breakdown and `quote_id`; the service catalogue for the stay and the priced service lines with `services_quote_id` | Property `geo` (exact position), `access_pin_code`, `checkin_instructions` / `checkout_instructions` and their PDF links |
+| The quote breakdown and `quote_id` | Property `geo` (exact position), `access_pin_code`, `checkin_instructions` / `checkout_instructions` and their PDF links |
 | The guest's own booking, trimmed for the payment page (dates, amounts due, price lines; see `rentalwise-payment-page`), through a URL that does not expose the booking id | Any other booking, guest or payment record; `booking/query` results that are not filtered to the guest's id and identifier |
 | The payment widget `client_secret` and `instance` | The `payment/create-client-secret` call itself |
 

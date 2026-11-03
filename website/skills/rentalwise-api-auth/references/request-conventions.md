@@ -187,7 +187,6 @@ is the schema's `response_type`, whose fields `scripts/schema.py fields <type>` 
 | Discounts for a period | `property/get-applicable-discounts` | array of `applicable-discount` | details |
 | Price a stay | `property/get-quote` | `quote` | quote |
 | Create booking | `property/create-booking` | `booking` | booking |
-| Extras for a stay / for a booking | `service/query-available`, `service/price-services`, `service/price-services-for-booking`, `service/price-for-booking`, `booking/add-services` | arrays (see `rentalwise-booking/references/services.md`), `booking` | booking |
 | Read a booking back | `booking/query`, `booking/fetch` | `booking` | booking, payment-page |
 | Payment methods for a legal entity | `payment-method/query` | `payment-method` | booking |
 | Payment widget secret | `payment/create-client-secret` | `{ data: { client_secret, instance } }` | payment-page |
