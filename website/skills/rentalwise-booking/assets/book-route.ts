@@ -125,7 +125,7 @@ export async function handleBook(rw: RentalWiseClient, input: BookInput, options
         with: ['rental_agreement', 'legal_entity', 'policies'],
         no_auto_relations: true,
     });
-    if (!property || property.status !== 'enabled' || property.website_visible !== true) {
+    if (!property || !isPubliclyBookable(property)) {
         return { ok: false, notAvailable: true, message: 'This property cannot be booked online.', errors: {} };
     }
     if (property.rental_agreement && !guest.accepted_rental_agreement) {
@@ -233,9 +233,26 @@ export async function hasOnlinePaymentMethod(rw: RentalWiseClient, legalEntityId
             no_auto_relations: true,
         });
         return Array.isArray(page?.data) && page.data.length > 0;
-    } catch {
+    } catch (e) {
+        // A 422 on `where.conditions.N.field` means the key's role may not read `status` or
+        // `show_on_website` on payment methods (rentalwise-api-auth section 4): every guest would
+        // land on the thank-you page without paying. Log it so the role gets fixed.
+        console.error('payment-method/query failed; treating as "no online payment method"', e instanceof RentalWiseError ? e.responseBody : e);
         return false;
     }
+}
+
+/**
+ * Enabled and website-visible. Both fields are guarded by the key's role (rentalwise-api-auth
+ * section 4): a role that may not read them returns the record without the keys, and the auth
+ * skill's smoke test fails at setup for that. So a missing key here is a role problem already
+ * reported elsewhere, not a hidden property: refuse only what is readable and says "hidden",
+ * never compare `undefined` with `'enabled'` or `true` (that would refuse every booking).
+ */
+export function isPubliclyBookable(p: { status?: string; website_visible?: boolean | null }): boolean {
+    if (p.status !== undefined && p.status !== 'enabled') return false;
+    if (p.website_visible !== undefined && p.website_visible !== true) return false;
+    return true;
 }
 
 /** `next_payment_due_date` (YYYY-MM-DD) strictly after today's UTC date. */

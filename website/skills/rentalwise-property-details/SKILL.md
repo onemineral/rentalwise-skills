@@ -33,11 +33,20 @@ POST property/query
 
 Run this in the page's server-side loader (or a server component); the browser never queries
 RentalWise itself. Take `data[0]`; an empty `data` is a 404. With a known id,
-`property/fetch { id, with }` returns the record directly.
+`property/fetch { id, with }` returns the record directly, and your code applies the same
+`status` / `website_visible` check to it before rendering.
+
+The `status` and `website_visible` conditions are the visibility guard of the page, and both
+fields are guarded by the key's role (`rentalwise-api-auth` section 4). A role without them
+makes this query answer 422 `where.conditions.N.field`; do not drop the conditions to make
+the 422 go away, because a hidden property would then be reachable by slug. Have the customer
+grant the key's role "View Property Configuration" and rerun the auth skill's smoke test.
 
 Everything not listed in `with` is missing from the response, so extend the list when the page
-shows more (`collections`, `discounts`, `floor_images`, `location.images`). The field reference
-with types and display notes is in `references/property-fields.md`.
+shows more (`collections`, `discounts`, `floor_images`, `location.images`). So is every field
+or relation the key's role may not read: `with` ignores such a relation silently and the field
+is absent from the record, which is why the mapping below treats every field as optional. The
+field reference with types and display notes is in `references/property-fields.md`.
 
 Before handing the record to the page, map it to what the page renders and drop what visitors
 must not see: `geo` (exact coordinates; use `display_geo`), `access_pin_code`,

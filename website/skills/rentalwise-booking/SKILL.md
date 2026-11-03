@@ -230,6 +230,10 @@ POST property/create-booking
 - Everything not listed above (`status`, `total_*`, `card`, `payment_schedule`, `force`,
   `skip_host_confirmation`, `handles_payment`, `booking_category`) is for back-office or OTA
   integrations. A website that sends them can create unpaid or mis-priced bookings.
+- Arguments the key's role may not use are dropped silently, like unknown keys
+  (`rentalwise-api-auth` section 4). If `hold`, `source_name`, `tracking` or `services` show no
+  effect on the created booking, compare the payload with `schema.py args
+  property/create-booking` run with this token before debugging the code.
 
 The response is the booking record (`references/booking.md`). Do not return it to the browser.
 The route decides where the guest goes next (section 5 or 6) and answers with a redirect
@@ -336,7 +340,12 @@ Decide in this order, in the same server route that created the booking (or adde
 
    A non-empty `data` means yes. Treat a missing legal entity or a failed call as "no" (the
    booking exists; the customer can still collect payment offline) and send the guest to the
-   thank-you page.
+   thank-you page. `legal_entity`, `status` and `show_on_website` are guarded by the key's
+   role like every field (`rentalwise-api-auth` section 4): a role that may not read them
+   makes the relation absent or the query a 422, and every guest silently lands on the
+   thank-you page without paying. The asset logs that failure; if online payment never
+   triggers, check `schema.py fields payment-method` and `schema.py fields property` with the
+   project's token before touching the code.
 3. Otherwise send the guest to the payment page. This includes request-to-book bookings
    (`pending_host_confirmation`) whose first step is due now: the widget captures the payment
    method and the page words the button as a request (`rentalwise-payment-page` section 3).
@@ -380,6 +389,9 @@ Everything from here on, the payment page, the widget, the retry and the thank-y
       gets `identifier` from the server-side booking record and `expected_total` for every firm
       instant line.
 - [ ] `source_name` is set on `create-booking` so the customer can tell website bookings apart.
+- [ ] The visibility guard on the booked property refuses what is readable and hidden, and the
+      auth skill's smoke test confirmed the key's role reads `status` and `website_visible`;
+      arguments and relations the role may not use were checked against `schema.py`.
 - [ ] Request-to-book and instant-book are labelled differently and lead to the right
       post-booking message.
 - [ ] The booking route answers with a redirect target that does not expose the booking id,

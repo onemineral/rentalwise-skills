@@ -1,7 +1,10 @@
 # Fields on a search result
 
 `property/search` returns a slim projection of the property, not the full record. Observed on
-the current API, each item in `data` has exactly these keys:
+the current API with a role that may read all of them, each item in `data` has exactly these
+keys. A field the key's role may not read is left out of the record altogether (no key, not
+`null`), so map every field as optional and check `schema.py fields property` with the
+project's token when one is missing (`rentalwise-api-auth` section 4):
 
 | Field | Type | Use |
 |---|---|---|

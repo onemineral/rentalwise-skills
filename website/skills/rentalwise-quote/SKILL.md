@@ -59,7 +59,7 @@ its changes back to the URL and the booking page receives the same parameters (s
 | `security_deposit`, `security_deposit_currency` | Refundable deposit authorised separately; show it, do not add it to `total`. |
 | `exceptions`, `warnings` | Rule violations / notices. Show warnings; a non-empty `exceptions` means not bookable as-is. |
 | `search_criteria` | Echo of the request; the booking page reuses it when building the booking payload. |
-| `property` | The full property record; the booking page can use it instead of loading the property again. |
+| `property` | The full property record, trimmed to the fields the key's role may read like any other record (`rentalwise-api-auth` section 4); the booking page can use it instead of loading the property again. |
 
 Show `product.total` (tax-inclusive) per line and `quote.total` as the grand total; offer a
 details view with `line_items` and `taxes` when a product has more than one of them. Discounts

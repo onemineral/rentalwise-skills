@@ -18,6 +18,11 @@ Contents: request shape · response envelope · pagination · query language (`w
   argument list and every other key is dropped without an error (verified in the backend).
   A misspelled or unsupported parameter therefore never fails, it just does nothing; when a
   parameter seems to have no effect, check `scripts/schema.py args <resource>/<action>`.
+- "Declared" means declared *for the token's role*: an argument the key's role may not use is
+  dropped the same silent way (`property/search` `website_visible` on a role without "View
+  Property Configuration" is the example to remember). The schema from `settings/fetch` is
+  computed per token, so `schema.py args` is the authoritative list for the key you hold
+  (SKILL.md section 4).
 
 ## Response envelope
 
@@ -95,6 +100,12 @@ All `*/query` endpoints accept the same block:
   `legal_entity`, `amenities`, `discounts` do not.
 - `no_auto_relations: true` disables the default relations and makes the response smaller;
   pair it with an explicit `with`. Use it on every list and lookup query.
+- Field names in `where`, `sort` and `with` resolve against the fields the token's role may
+  access, and records contain only those fields. Outside that set: a `where` condition is a 422
+  on `where.conditions.N.field` ("does not exist in schema"), a `sort` is ignored silently, a
+  `with` relation is ignored silently, and a record field is absent (not `null`). Nothing
+  distinguishes "the role lacks it" from "it does not exist" except `schema.py fields
+  <resource>` run with the same token (SKILL.md section 4).
 - `q` is a free-text search over the record's `name` in the account's **default language** only
   (`location/query { "q": "new" }` matches "New York", "New Mexico", ...); for another language
   filter `name` with `contains` and a `locale`. Use it for
@@ -137,7 +148,9 @@ Validation (422):
 ```
 
 `errors` is keyed by field name for input problems (`daterange.start`, `quote_id`, `adults`) and
-by rule name for business rules (`rates_defined`, `availability`, `min_stay`, ...). The top-level
+by rule name for business rules (`rates_defined`, `availability`, `min_stay`, ...). A
+`where.conditions.N.field` key means the field of that condition is unknown to this token:
+misspelled, or not granted to the key's role (SKILL.md section 4). The top-level
 `message` is sometimes the generic sentence and sometimes the first error message
 (`property/search` with a past date answers
 `{ "message": "Must be a date after or equal to today.", "errors": { "daterange.start": [...] } }`),

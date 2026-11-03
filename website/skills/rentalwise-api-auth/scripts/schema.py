@@ -20,6 +20,12 @@ saves only its `schema` key (about 2 MB) as .rentalwise-schema.json at the proje
 nearest ancestor of the current directory with .git, package.json or composer.json; override
 with RENTALWISE_SCHEMA_CACHE). Every later command reads that file, needs no token and finds it
 from any subdirectory. Refresh after a PMS upgrade, not per question. Add the file to .gitignore.
+
+The schema is computed for the token that downloads it: resources, actions, arguments, fields
+and relations the API key's role may not use are left out, and the API drops, refuses or omits
+them at request time (rentalwise-api-auth SKILL.md section 4). So a field this script does not
+list is one this token cannot use. Download the cache with the project's own token, and refresh
+it after the customer changes the key's role.
 """
 import json
 import os

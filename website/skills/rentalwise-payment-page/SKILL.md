@@ -85,6 +85,15 @@ null or 0 while `total_outstanding` > 0. Create the client secret only in the pa
 and create a new one on every render: the secret is tied to the booking and the amount
 currently due, and the widget reloads the page by itself after an hour.
 
+The booking's fields and relations are guarded by the key's role (`rentalwise-api-auth`
+section 4): pricing, products, financials and guest info are separate abilities, a relation
+the role may not load is skipped silently and a field is absent. A page that renders without
+price lines, with a zero amount due or without the guest's first name is usually a role that
+lacks the corresponding ability, not a loader bug; compare `schema.py fields booking` run with
+the project's token against `references/booking-for-payment.md` and have the customer extend
+the key's role. The loader maps every field as optional so the page degrades instead of
+crashing, but do not ship a payment page that cannot show the amount it charges.
+
 `assets/payment-page-loader.ts` implements the lookup, the state and the trimming on top of
 the client from `rentalwise-api-auth`, with the encrypted-token example as its URL scheme; swap
 the two token functions for your own scheme if you chose another. Copy it next to

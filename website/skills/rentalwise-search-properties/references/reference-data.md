@@ -38,7 +38,9 @@ hidden properties, e.g. 9 instead of 3):
 
 The count arrives as `aggregation_properties_count` on each record. Hide zeros, or restrict to
 the list of destinations the customer wants featured (keep that list in the project's
-configuration).
+configuration). The aggregation's `where` is subject to the same role check as any other: a
+key whose role may not read `website_visible` gets a 422 here, and the fix is the role, not a
+count without the condition (`rentalwise-api-auth` section 4).
 
 ## Amenities
 

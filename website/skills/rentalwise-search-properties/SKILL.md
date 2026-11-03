@@ -53,6 +53,15 @@ ignores `paginate`.
    - Omit a filter rather than sending an empty array or `null`.
    - Validate dates on the server first: a past check-in makes the API answer 422
      (`errors["daterange.start"]`) instead of an empty list.
+   - `website_visible: true` only filters when the key's role may use the field
+     (`rentalwise-api-auth` section 4, "Fields are guarded by the token's role"). Otherwise the
+     API drops the argument silently, the search returns hidden properties too, and the records
+     carry no `website_visible` key, so your code cannot filter them afterwards either. Check
+     once at setup (the auth skill's `scripts/smoke-test.sh`, or `schema.py args property/search`
+     and `schema.py fields property` with this token). If the field is missing, the search page
+     does not ship until the customer grants the key's role "View Property Configuration"; a
+     `collections` or `tags` filter is not a substitute unless the customer explicitly wants the
+     site to list exactly that set.
 3. Call the backend route that forwards to `property/search`. The browser sends only the filter
    state; the route holds the token, adds `website_visible: true`, and returns mapped results.
    Never call `property/search` from browser code.
@@ -98,7 +107,8 @@ code. So:
 
 A search result is a slim record: id, name, short_description, description, bedrooms,
 bathrooms, toilets, max_occupancy, comfortable_occupancy, currency, marketing_price, main_image,
-location, seo, display_geo, plus `availability_details` and `rate` when dates were sent. There
+location, seo, display_geo, plus `availability_details` and `rate` when dates were sent (each
+only when the key's role may read it; a field the role lacks is absent, not `null`). There
 is no property type, no reviews rating, no amenities and no booking category. When a
 card needs those, run one `property/query` for the ids on the page:
 
@@ -152,6 +162,13 @@ project); the API only tells you what exists (`currency/query`, `language/query`
 - Visitors may only see `website_visible` properties. Pass `website_visible: true` on every
   `property/search` and add `{ field: "website_visible", eq: true }` plus
   `{ field: "status", in: ["enabled"] }` conditions to every `property/query` on a public page.
+  Both fields are guarded by the key's role: on a role without them the search argument is
+  dropped silently and the `query` condition answers 422 `where.conditions.N.field`. Neither is
+  a reason to remove the guard; it is a reason to change the key's role
+  (`rentalwise-api-auth` section 4 and its smoke test).
+- Any other filter, sort or relation that seems to have no effect is a role question before it
+  is a bug: `schema.py args property/search` / `schema.py fields property` list what this token
+  may send and receive.
 - `daterange.end` is the checkout date. One night = end is the day after start.
 - Property names, locations and amenity names are TranslatedText maps; resolve them for the
   page locale, then the account's default language, then any non-blank value

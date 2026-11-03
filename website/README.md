@@ -18,13 +18,21 @@ framework guidance the project needs.
 | `rentalwise-payment-page` | build the page the guest pays on: keep the booking id out of the URL, fetch and display the booking and property, embed the RentalWise payments widget, handle retry and the thank-you page. |
 | `rentalwise-languages-and-translations` | make the site multilingual or render any translated field: which language keys the account uses (`language/query`), resolving TranslatedText with the right fallback, locale in sort/filter/search, per-language URLs, hreflang and metadata. Texts the website adds itself are not covered. |
 
-## The one rule every skill repeats
+## The two rules every skill repeats
 
 The RentalWise API token grants access to the customer's bookings, guests and payments. It lives in server-side
 environment variables without a public prefix, is used only from server code (page loaders, API
 routes, serverless functions), and the browser talks exclusively to the website's own routes.
 `rentalwise-api-auth` section 2 spells out what that means per stack; the other skills point
 back to it wherever a call could be tempting to make from a component.
+
+The token also carries a role, and every field, argument and relation of the API is guarded by
+it. A field the role may not use is dropped from search arguments without an error, refused in
+a `where`, skipped in `with` and absent from records; `website_visible` is the one that bites
+(it needs "View Property Configuration", and without it `property/search` returns hidden
+properties). `rentalwise-api-auth` section 4 explains the mechanism, its smoke test checks the
+key, and the schema it downloads is computed for that token, so it is the list of what the key
+can do.
 
 ## Installing
 
@@ -94,3 +102,6 @@ website-builder specifics (website channels, page settings) left out on purpose.
 later question about resources, actions, arguments or fields is answered from that file
 (`schema.py` or `jq`), not by calling the API again. After a PMS release, run
 `schema.py --refresh resources` and diff the parameter tables in `references/` against its output.
+The tables were generated with a role that reads everything a website needs; the schema a
+project downloads with its own key lists only what that key's role may use, which is the list
+that applies to the project.

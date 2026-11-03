@@ -174,14 +174,61 @@ How to read it:
 - The schema describes what an argument accepts, not what the server does with it on every
   code path. `property/search` accepts `paginate` and currently ignores it (see the search
   skill). When a behaviour matters, make one real request and look.
+- The schema is computed for the token that fetched it (next section). A field, argument or
+  relation that the key's role may not use is simply not listed. Refresh the cache after the
+  customer changes the key's role, and never reuse a cache made with another token.
 
-## 5. Verify the credentials before building anything
+### Fields are guarded by the token's role
+
+An API key carries a role: a set of abilities the customer picks when issuing the key ("View
+Properties", "View Property Configuration", "View Bookings", ...). Every resource, action,
+action argument, record field and relation is either granted by that role or not. The API never
+reports a missing grant as an error of its own; it edits the request and the response instead:
+
+| Where the field appears | What happens when the role may not use it |
+|---|---|
+| Argument of an action (`property/search` `website_visible`, `create-booking` `hold`, ...) | Dropped by validation before the action runs, silently, exactly like an unknown key. The action behaves as if you had not sent it. |
+| `where` condition of a `query` action | 422 `{ "errors": { "where.conditions.0.field": ["..."] } }` saying the field does not exist in the schema. |
+| `sort` on the field | Ignored silently; the list comes back in default order. |
+| Relation in `with` | Ignored silently; the relation is absent from the records. |
+| Field of a returned record | Absent from the record: the key is missing, not `null`. |
+| `settings/fetch` schema | Not listed. `schema.py args` and `schema.py fields` therefore show exactly what *this* token may send and receive. |
+
+What that means for a website:
+
+- A filter that "does nothing", a relation that "does not load" or a field that "the API does
+  not return" is a permission before it is a bug or a version difference. Check
+  `scripts/schema.py find <field>` against the cache made with this token.
+- `website_visible` is the case that matters most. It is granted by "View Property
+  Configuration" (`view-advanced-property-settings`), not by "View Properties" (which grants
+  `status`). With a key that lacks it, `property/search { "website_visible": true }` returns
+  hidden properties too, a `where` on it answers 422, and the records carry no
+  `website_visible` key, so your own code cannot filter them either. The site must not ship in
+  that state: ask the customer to add the ability to the key's role (or to issue a key with a
+  role that has it), then refresh the schema cache and rerun the smoke test. One exception: a
+  token issued for a RentalWise-hosted website (role `cloud-website`) does not expose the field
+  but the API applies the enabled + website-visible scope to every property query itself; have
+  the customer confirm which kind of key they issued before treating the missing field as a leak.
+- Every mapping of an API record treats every field and relation as optional (optional
+  chaining, `??` defaults), and decides explicitly what a missing guard field means instead of
+  comparing `undefined` with a value. The assets in this skill set do that; keep the habit in
+  your own code.
+- Abilities a standalone site typically needs on the key's role: view properties, view property
+  configuration (`website_visible`, rates settings), property availability, rates and reviews,
+  view bookings with guest info, pricing, products and financials (the payment page), create
+  guest bookings and the payment widget. The role editor in the PMS shows them by label;
+  compare the field lists in each skill's `references/` with `schema.py fields <resource>` for
+  the token you were given.
+
+## 5. Verify the credentials and the role before building anything
 
 Run `scripts/smoke-test.sh` (needs `RENTALWISE_BASE_URL` and `RENTALWISE_API_TOKEN` in the
-environment). It prints how many enabled, website-visible properties the token can see. A 401
-means the token or base URL is wrong; fix that before writing application code, because every
-later error would be misleading. Zero visible properties means the customer has not marked any
-property as website-visible yet; ask them before debugging the search.
+environment). It checks three things: the token reaches `property/query` (a 401 means the token
+or base URL is wrong; fix that before writing application code, because every later error would
+be misleading), the key's role can read `status` and `website_visible` on a property record
+(otherwise it fails with the ability to ask the customer for, see section 4), and how many
+enabled, website-visible properties the token can see. Zero visible properties means the
+customer has not marked any property as website-visible yet; ask them before debugging the search.
 
 ## 6. Endpoints a website may call
 
@@ -205,6 +252,7 @@ any endpoint that is not listed) is back-office territory; a website has no reas
 |---|---|---|
 | 401 | bad or missing token | Fail loudly in logs, never retry in a loop, never fall back to another token. |
 | 422 | validation failed | `responseBody.errors` is a map of field or rule name to an array of messages, plus a top-level `message` (either "The given data was invalid." or the first error message). Show the messages to the user for forms; treat quote rule keys as "not available" (quote skill). |
+| 422 with a `where.conditions.N.field` key | the field in a `where` is unknown to this token | Misspelled, or not granted to the key's role (section 4). Check `scripts/schema.py fields <resource>`; a missing `website_visible` or `status` means the role must change, not the query. |
 | 500 with `exception_type: "response_exception"` | a business rule, not a crash | Read `message`; e.g. `get-occupancy-rates` on a daily-priced property. Handle like a 422. |
 | 500 with `Action with name "x" is not registered` | wrong path | Fix the resource/action name (kebab-case). The API does not answer 404 for this. |
 | other 5xx / network | upstream problem | Return a generic error to the browser, log the request path, status and response body. |
@@ -238,14 +286,17 @@ them: prices and availability change at any time.
 
 - [ ] `RENTALWISE_BASE_URL` ends with `/rest/` and `RENTALWISE_API_TOKEN` is set server-side only,
       with no public prefix (`NEXT_PUBLIC_`, `VITE_`, `REACT_APP_`, `PUBLIC_`, ...)
-- [ ] `scripts/smoke-test.sh` succeeded
+- [ ] `scripts/smoke-test.sh` succeeded, including its check that the key's role reads `status`
+      and `website_visible` (or the customer confirmed the key has the `cloud-website` role)
+- [ ] Every field, argument and relation the pages rely on appears in `schema.py fields` /
+      `schema.py args` for this token; record mappings treat every field as optional
 - [ ] A single shared client module exists (`assets/rentalwise-client.ts` or an equivalent
       plain-HTTP wrapper, no SDK), is marked server-only and is imported only by server code
       (pages' data loaders, API routes, functions)
 - [ ] `.rentalwise-schema.json` exists at the project root (one `scripts/schema.py --refresh`
-      run) and is git-ignored; every later schema question was answered from that file with
-      `schema.py` or `jq`, never by calling `settings/fetch` again; parameter names in the
-      code match `schema.py args <resource>/<action>`
+      run with the project's own token) and is git-ignored; every later schema question was
+      answered from that file with `schema.py` or `jq`, never by calling `settings/fetch`
+      again; parameter names in the code match `schema.py args <resource>/<action>`
 - [ ] Browser-facing routes forward only the specific calls the pages need and return mapped
       fields, not raw records
 - [ ] `grep -rn "rentalwise.io/rest\|RENTALWISE_API_TOKEN\|Bearer " <client source dirs>` finds

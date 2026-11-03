@@ -1,7 +1,10 @@
 # Property record fields
 
 Returned by `property/query`, `property/fetch` and (partially) `property/search`. Relations marked
-"with" must be requested in `with`.
+"with" must be requested in `with`. Every field and relation is also subject to the key's
+role: one the role may not read is absent from the record (no key, not `null`) and silently
+skipped in `with`, so `scripts/schema.py fields property` run with the project's token is the
+list that applies, not this page (`rentalwise-api-auth` section 4).
 
 ## Identity and text
 
@@ -19,8 +22,8 @@ Returned by `property/query`, `property/fetch` and (partially) `property/search`
 | `surroundings` | TranslatedText | Neighbourhood text; fallback to `location.description`. |
 | `checkin_instructions`, `checkout_instructions` | TranslatedText | Post-booking content; do not show publicly. |
 | `registration_number`, `registration_number_jurisdiction` | string | Legal licence number some regions require on listings. |
-| `status` | `enabled` / `pending` / `disabled` | Only `enabled` is public. |
-| `website_visible` | boolean | Only `true` is public. |
+| `status` | `enabled` / `pending` / `disabled` | Only `enabled` is public. Granted by "View Properties". |
+| `website_visible` | boolean | Only `true` is public. Granted by "View Property Configuration", not by "View Properties": a key without it cannot filter on the field anywhere and never receives it. Check with the smoke test before building. |
 
 ## Facts
 

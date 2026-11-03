@@ -23,6 +23,12 @@ the status in code.
 
 ## Fields the page uses
 
+Every row below exists only when the key's role grants it (`rentalwise-api-auth` section 4):
+`view-bookings` for the record, plus the guest-info, pricing, products and financials
+abilities for the groups their names suggest. A missing field is absent from the record, a
+relation the role may not load is ignored in `with`. `scripts/schema.py fields booking` with
+the project's token is the authoritative list.
+
 | Field | Purpose |
 |---|---|
 | `id` | Only for the widget's `booking-id` attribute and the `booking` argument of `create-client-secret`. Not in the URL, not in JSON responses. |

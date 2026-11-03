@@ -17,7 +17,7 @@ All optional. Omit a key rather than sending `null` or `[]`. Generated from the 
 | `currency` | `{ id }` or `{ iso_code }` | Currency to convert prices into. Results carry `availability_details.converted`. |
 | `geo` | `{ lat, lon }` | Centre point for distance-based relevance. |
 | `discounts_count` | number | Only properties with at least this many active discounts. |
-| `website_visible` | boolean | Send `true` on a public site so hidden properties never leak. |
+| `website_visible` | boolean | Send `true` on a public site so hidden properties never leak. Guarded by the key's role ("View Property Configuration"): on a role without it the argument is dropped silently and hidden properties come back. Verify with the auth skill's smoke test before shipping. |
 | `include_fees` | boolean | Include mandatory fees in `availability_details.total`. Set it to match how the customer wants list prices shown; the quote always includes fees. |
 | `ignore_min_stay`, `ignore_restrictions` | boolean | Return properties that fail min-stay/other rules (for inquiry flows). Do not use for bookable prices. |
 | `channel`, `markup` | | Sales-channel attribution and markup for OTA-style integrations. A standalone website leaves both out. |
@@ -28,8 +28,11 @@ The arguments above are the complete list (`scripts/schema.py args property/sear
 other key in the body is dropped by validation before the action runs, silently (the backend
 keeps only declared arguments; verified live with a `where` block and a `sort`, which changed
 neither the result set nor its order), so a filter that seems to have no effect is one the
-action does not take. The records that come back are slim, see `result-fields.md`;
-relations, sorting and `where` filtering belong to `property/query` below.
+action does not take. The same happens to a declared argument the key's role may not use:
+the list the script prints is the list for your token, and an argument missing from it is
+dropped the same silent way (`rentalwise-api-auth` section 4). The records that come back are
+slim, see `result-fields.md`; relations, sorting and `where` filtering belong to
+`property/query` below.
 
 ## `property/query` for listing without availability
 
@@ -52,6 +55,11 @@ relations, sorting and `where` filtering belong to `property/query` below.
 Sortable fields include `name` (with a `locale` from `language/query`; omitted = default language), `bedrooms`, `bathrooms`, `max_occupancy`,
 `reviews_rating`, `marketing_price`, `created_at`. `q` adds a free-text match on the name
 (`"q": "art"` matches "Cortonese Art Apartment"); it is the simplest "search by name" box.
+
+The `status` and `website_visible` conditions need a role that may read those fields;
+otherwise the query answers 422 `where.conditions.N.field` instead of filtering. A `sort` or
+`with` entry the role may not use is ignored silently. Keep the conditions and fix the role
+(`rentalwise-api-auth` section 4).
 
 ### Availability block on `property/query`
 
