@@ -1,0 +1,7 @@
+---
+type: llm
+focus: trace
+weight: 1
+---
+
+The result matches this description: The agent does not call the RentalWise API from the React component and explains that a VITE_-prefixed variable is compiled into the public bundle. It moves the token to a server-side environment variable without a public prefix, adds a Netlify function (or equivalent serverless endpoint) that holds the token and forwards a validated property/search body with Bearer auth and POST, and makes the component call that function. The token never appears in client source or in the built bundle.

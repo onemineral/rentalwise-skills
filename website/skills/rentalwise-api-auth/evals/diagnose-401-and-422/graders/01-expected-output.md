@@ -1,0 +1,7 @@
+---
+type: llm
+focus: trace
+weight: 1
+---
+
+The result matches this description: The answer explains that every endpoint is POST, the token goes in an Authorization: Bearer header, 401 means wrong token/base URL and must not be retried, 422 carries errors keyed by field or rule name, and rates_defined on a quote means the property is not available for those dates rather than a bug.

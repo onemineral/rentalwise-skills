@@ -1,0 +1,7 @@
+---
+type: llm
+focus: trace
+weight: 1
+---
+
+The result matches this description: Calls property/get-quote from a server route with property, daterange, adults, children, currency and coupon_code (coupon only when entered), re-quotes on every change of dates, guests, coupon or currency, renders products[] and total and shows security_deposit separately, maps rates_defined/availability/property_booked 422s to one not-available message with an alternative (other dates or inquiry) and other keys (min_stay, max_occupancy, coupon_code, ...) to their own messages; labels the button "Book now" or "Request to book" from policies.booking_category and links to the booking page with the search criteria only (no prices); the browser never calls the RentalWise API or sees the token.

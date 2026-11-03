@@ -1,0 +1,8 @@
+{
+  "name": "rentalwise-website",
+  "description": "Seven skills for building guest-facing websites on the RentalWise API: API client and auth, property search, property page, quote, booking and upsells, payment page, languages and translations",
+  "version": "1.0.0",
+  "author": { "name": "RentalWise" },
+  "homepage": "https://github.com/onemineral/rentalwise-skills",
+  "license": "MIT"
+}

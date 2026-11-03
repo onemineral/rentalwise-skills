@@ -1,0 +1,12 @@
+{
+  "name": "rentalwise-skills",
+  "description": "Agent Skills for working with the RentalWise property management API",
+  "owner": { "name": "RentalWise" },
+  "plugins": [
+    {
+      "name": "rentalwise-website",
+      "source": "./website",
+      "description": "Seven skills for building guest-facing websites on the RentalWise API: API client and auth, property search, property page, quote, booking and upsells, payment page, languages and translations"
+    }
+  ]
+}

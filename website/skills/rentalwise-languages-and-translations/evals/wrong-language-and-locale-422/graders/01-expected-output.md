@@ -1,0 +1,7 @@
+---
+type: llm
+focus: trace
+weight: 1
+---
+
+The result matches this description: Explains that English text on /fr is the fallback for content the customer has not translated in RentalWise (only saved keys exist in a TranslatedText and a value may be null or empty), so the fix is to keep the fallback chain page locale -> account default (is_default) -> any value, optionally flag "shown in English", and ask the customer to complete the translation in the PMS rather than hiding records or hard-coding en; identifies that the 422 comes from the locale key, which must be one of the two-letter codes returned by language/query ("fr", not "fr-FR"), and fixes it by validating or normalising the locale before it reaches sort[].locale (and any where condition), mapping unknown values to the default language.
